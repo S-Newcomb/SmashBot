@@ -4,44 +4,10 @@ import asyncio
 import findVodVs
 import os
 
-def split_message(message, limit=2000):
-    """
-    Splits a message into chunks each of size `limit`, which defaults to Discord's limit.
-    
-    Args:
-        message (str): The message to split.
-        limit (int, optional): Maximum length of each chunk. Defaults to 2000.
-    
-    Returns:
-        list of str: A list of message chunks, each within the specified limit.
-    """
-    # Ensure message is a string and limit is an integer greater than 0
-    if not isinstance(message, str) or not isinstance(limit, int) or limit <= 0:
-        raise ValueError("Invalid message or limit")
-
-    # Return the message itself if it's within the limit
-    if len(message) <= limit:
-        return [message]
-
-    # Split the message into chunks
-    chunks = []
-    while message:
-        # Find the nearest whitespace to split on to avoid breaking words
-        split_index = message.rfind(' ', 0, limit)
-        if split_index == -1:  # No whitespace found, forced to split at limit
-            split_index = limit
-        
-        chunk = message[:split_index].strip()
-        chunks.append(chunk)
-        message = message[split_index:].strip()
-
-    return chunks
-
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-intents = discord.Intents.all()
 
 # Initialize Bot and Denote The Command Prefix
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 text_channel_list = []
 guild_list = []
@@ -77,6 +43,8 @@ async def clear(ctx):
     botTestChannel = bot.get_channel(1221596751207596032)
     for thread in botTestChannel.threads:
         await thread.delete()
+        await asyncio.sleep(0.4)  # Delay to help avoid rate limiting
+
     await botTestChannel.purge()
 
 myVods =  "https://www.youtube.com/playlist?list=PL0idm2uMQWS99jtrqZZGeshQL1NlMMnb7"
@@ -84,6 +52,9 @@ topVods = "https://www.youtube.com/playlist?list=PL0idm2uMQWS9UTUs1us-1uo0dDgYFo
 
 @bot.command()
 async def updateVods(ctx):
+    #delete the command message
+    await ctx.message.delete()
+
     botTestChannel = bot.get_channel(1221596751207596032)
     statusmsg = await botTestChannel.send(f"Updating your Vods vs all characters from your Youtube Playlist")
     
@@ -119,5 +90,22 @@ async def updateVods(ctx):
     
     await statusmsg.delete()
     await asyncio.sleep(1)  # Ensure the last message is sent before deletion to avoid potential rate limiting
+
+@bot.command()
+async def copyChannel(ctx, srcChannel=0):
+    #delete the command message
+    await ctx.message.delete()
+    
+    #if srcChannelId provided use that otherwise copy from current channel
+    channel = ctx.channel
+    if srcChannel != 0:
+        channel = bot.get_channel(srcChannel)
+    messages = [m async for m in channel.history(limit=None)]
+    messages.reverse() #Normally returns messgaes in newest -> oldest
+    for message in messages:
+        files = []
+        for attachment in message.attachments:
+            files.append(await attachment.to_file())
+        await channel.send(message.content, files=files)
 
 bot.run(TOKEN)
