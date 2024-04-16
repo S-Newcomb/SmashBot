@@ -91,8 +91,25 @@ async def updateVods(ctx):
     await statusmsg.delete()
     await asyncio.sleep(1)  # Ensure the last message is sent before deletion to avoid potential rate limiting
 
+# Helper function for copyChannel()
+async def copyMessages(channel, msgList):
+    for message in msgList:
+        files = []
+        for attachment in message.attachments:
+            files.append(await attachment.to_file())
+        await channel.send(message.content, files=files)
+
+# Returns the first index of message in list where the Id matches provided_id
+def find_message_index(messages, provided_id):
+    try:
+        # Using next() with enumerate() to find the index of the first matching message
+        return next(index for index, message in enumerate(messages) if message.id == provided_id)
+    except StopIteration:
+        # If no message is found that matches, return None or raise an exception
+        return None
+    
 @bot.command()
-async def copyChannel(ctx, srcChannel=0):
+async def copyChannel(ctx, pauseMsg=0, srcChannel=0):
     #delete the command message
     await ctx.message.delete()
     
@@ -100,12 +117,30 @@ async def copyChannel(ctx, srcChannel=0):
     channel = ctx.channel
     if srcChannel != 0:
         channel = bot.get_channel(srcChannel)
+
     messages = [m async for m in channel.history(limit=None)]
     messages.reverse() #Normally returns messgaes in newest -> oldest
-    for message in messages:
-        files = []
-        for attachment in message.attachments:
-            files.append(await attachment.to_file())
-        await channel.send(message.content, files=files)
+
+    #if no pause
+    if pauseMsg == 0:
+        await copyMessages(channel, messages)
+        return
+    
+    else:
+        msgIdx =  find_message_index(messages, pauseMsg)
+        messagesBefore = messages[:msgIdx]
+        messagesAfter = messages[msgIdx:]
+        await copyMessages(channel, messagesBefore)
+        p = await ctx.send("Copying Paused\nType continue to continue pasting the copied Channel\n Type end to stop pasting and discard remaining copied contents")
+        
+        def match(msg):
+            return (msg.content == "continue" or msg.content == "end") and msg.channel == channel
+        
+        userInput = await bot.wait_for("message", check=match)
+        if userInput.content == "continue":
+            await copyMessages(channel, messagesAfter)
+
+        await p.delete()
+        await userInput.delete()
 
 bot.run(TOKEN)
