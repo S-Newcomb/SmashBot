@@ -39,31 +39,35 @@ async def printTextChannels(ctx):
 
 @bot.command()
 async def clear(ctx):
-    await ctx.send("Clearing all messages in bot-testing")
+    await ctx.send("Clearing all messages in my-vods")
     botTestChannel = bot.get_channel(1221596751207596032)
     for thread in botTestChannel.threads:
         await thread.delete()
-        await asyncio.sleep(0.4)  # Delay to help avoid rate limiting
+        await asyncio.sleep(0.5)  # Delay to help avoid rate limiting
 
-    await botTestChannel.purge()
+    messages = [m async for m in botTestChannel.history(limit=None)]
+    messages.reverse() #Normally returns messgaes in newest -> oldest
+    for message in messages:
+        await message.delete()
+        await asyncio.sleep(0.5) # Delay to help avoid rate limiting
 
 myVods =  "https://www.youtube.com/playlist?list=PL0idm2uMQWS99jtrqZZGeshQL1NlMMnb7"
 topVods = "https://www.youtube.com/playlist?list=PL0idm2uMQWS9UTUs1us-1uo0dDgYFomZf"
-
+testVods = "https://www.youtube.com/watch?v=ieps-3G1mXo&list=PL0idm2uMQWS-Dyj95iF5H8-lRqOl5M5WX"
 @bot.command()
 async def updateVods(ctx):
     #delete the command message
     await ctx.message.delete()
 
-    botTestChannel = bot.get_channel(1221596751207596032)
-    statusmsg = await botTestChannel.send(f"Updating your Vods vs all characters from your Youtube Playlist")
+    vodsChannel = bot.get_channel(1221596751207596032)
+    statusmsg = await vodsChannel.send(f"Updating your Vods vs all characters from your Youtube Playlist")
     
     #Dictionary in the format (CharName : List of Vods)
     vodDict = findVodVs.get_all_vods(myVods, "Pawp")
     print("Finished Finding Vods")
 
     existing_threads = []
-    for thread in botTestChannel.threads:
+    for thread in vodsChannel.threads:
         existing_threads.append(thread.name)
 
     for char in vodDict:
@@ -71,11 +75,11 @@ async def updateVods(ctx):
         if thread_name not in existing_threads:
             print("Creating new thread:", thread_name)
             await asyncio.sleep(0.4)  # Delay to help avoid rate limiting
-            threadStartMsg = await botTestChannel.send(thread_name)
+            threadStartMsg = await vodsChannel.send(thread_name)
             thread = await threadStartMsg.create_thread(name=thread_name)
         else:
             print("Thread already exists:", thread_name)
-            thread = discord.utils.get(botTestChannel.threads, name=thread_name)
+            thread = discord.utils.get(vodsChannel.threads, name=thread_name)
             #Delete messages in thread and post new one
             def isDefaultMsg(m):
                 return m.type == discord.MessageType.default

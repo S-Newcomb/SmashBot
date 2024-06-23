@@ -4,7 +4,7 @@ from pytube import YouTube, Playlist
 # Initial dictionary with primary characters, values are alternate names
 smash_ultimate_chars = {
     "Mario": [],
-    "Donkey Kong": [],
+    "Donkey Kong": ["DK"],
     "Link": [],
     "Samus": [],
     "Yoshi": [],
@@ -31,7 +31,7 @@ smash_ultimate_chars = {
     "Roy": [],
     "Chrom": [],
     "Mr. Game and Watch": ["GnW", "Game and Watch"],
-    "Meta Knight": [],
+    "Meta Knight": ["MetaKnight", "Meta-Knight", "MK"],
     "Pit": [],
     "Zero Suit": [],
     "Wario": [],
@@ -146,8 +146,10 @@ def get_all_vods(playlistURL, playerName = ""):
 
         charName = title[title.find("(") + 1 : title.find(")")]
 
-        #Handle special case where multiple chars i.e AC (Joker/Snake)
+        #Handle special case where multiple chars i.e AC (Joker/Snake) or (Joker, Snake)
         dualCharacter = charName.find("/")
+        if dualCharacter == -1:
+            dualCharacter = charName.find(",")
         if (dualCharacter != -1 and "Pyra" not in charName):
             char1 = charName[:dualCharacter].strip()
             char2 = charName[dualCharacter + 1:].strip()                
